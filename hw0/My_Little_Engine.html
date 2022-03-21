@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#info {
+	position: absolute;
+	top: 0px;
+	width: 100%;
+	padding: 10px;
+	text-align: center;
+	color: #003D79
+} 
+
+body {
+	overflow: hidden
+}
+</style>
+</head>
+
+<body>
+<div id='info'>
+	<h1>Homework 1 - My Little Engine</h1>
+<button id="toggle" style="width:50px">Start</button>
+</div>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://raw.githack.com/mrdoob/three.js/dev/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://raw.githack.com/mrdoob/three.js/dev/examples/js/loaders/OBJLoader.js"></script>
+
+<script>
+
+var renderer, scene, camera;
+var angle = 0;  
+var turn = false;
+var train, clock;
+
+
+init();
+animate();
+
+$("#toggle").click(function() {
+  turn = !turn;
+  if (turn)
+    $("#toggle").text ('Stop');
+  else
+	$("#toggle").text ('Start');
+});
+
+function unitize (object, targetSize) {
+	var box3 = new THREE.Box3();
+	box3.setFromObject(object);
+	var size = new THREE.Vector3();
+	size.subVectors(box3.max, box3.min);
+	var center = new THREE.Vector3();
+	center.addVectors(box3.max, box3.min).multiplyScalar(0.5);
+
+	console.log('center' + center.x + ',' + center.y + ',' + center.z);
+	console.log('size' + size.x + ',' + size.y + ',' + size.z);
+	
+	var objSize = Math.max(size.x, size.y, size.z);
+	var scaleSet = targetSize / objSize;
+
+	var theObject = new THREE.Object3D();
+	theObject.add(object);
+	object.scale.set(scaleSet, scaleSet, scaleSet);
+	object.position.set(-center.x * scaleSet, -center.y * scaleSet, -center.z * scaleSet);
+	
+	return theObject;
+}
+
+function readModel (targetSize = 7) {
+	var onProgress = function (xhr) {
+		if (xhr.lengthComputable) {
+			var percentComplete = xhr.loaded / xhr.total * 100;
+			console.log(Math.round(percentComplete, 2) + '% download');
+		}
+	};
+	
+	var onError = function (xhr) {};
+	
+	var mtlLoader = new THREE.MTLLoader();
+	mtlLoader.setPath('train/');
+	mtlLoader.load('train.mtl', function(materials) {
+		materials.preload();
+		var objLoader = new THREE.OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.setPath('train/');
+		objLoader.load('train.obj', function(object) {
+			let theObject = unitize(object, targetSize);
+			//theObject.add(new THREE.BoxHelper(theObject));
+			theObject.name = 'OBJ';			
+			theObject.setRotationFromEuler(new THREE.Euler(0, -3.1416/2, 0, 'XYZ'));
+			train = theObject;
+			scene.add(train);
+		}, onProgress, onError);
+	});	
+}
+
+function init () {
+	
+	renderer = new THREE.WebGLRenderer();
+	document.body.appendChild (renderer.domElement);
+	var width = window.innerWidth;
+	var height = window.innerHeight;
+	renderer.setSize (width, height);
+	
+	renderer.setClearColor (0xC4E1FF);
+	
+	scene = new THREE.Scene();
+	var grid = new THREE.GridHelper(20,20, 0xaaaa00, 0x333333);
+	//scene.add (grid);
+	var axes = new THREE.AxesHelper (5);
+	//scene.add (axes);
+	
+	camera = new THREE.PerspectiveCamera (35, width/height, 1, 100);
+	camera.position.y = 20;
+	camera.position.z = 35;
+	camera.lookAt (new THREE.Vector3(0,0,0));
+	
+	let controls = new THREE.OrbitControls(camera, renderer.domElement);
+	
+	window.addEventListener('resize', onWindowResize, false);
+	///////////////////////////////////////////////////////////////	
+	const light = new THREE.PointLight(0xffffff, 5, 100);
+	light.position.set(10, 10, 10);
+	scene.add( light );
+	
+	/*let innerSideLines = [], outerSideLines = [];
+	for(var i=0; i<7; i=i+0.1) {
+		innerSideLines.push(new THREE.Vector3(7.8*Math.cos(i), 0, -7.8*Math.sin(i)));
+	}
+	var lineGeometry = new THREE.BufferGeometry().setFromPoints(innerSideLines);
+	var innerLine = new THREE.Line(lineGeometry, new THREE.LineDashedMaterial({
+		color:0x6C6C6C
+	}));
+	for(var i=0; i<7; i=i+0.1) {
+		outerSideLines.push(new THREE.Vector3(8.4*Math.cos(i), 0, -8.4*Math.sin(i)));
+	}
+	var lineGeometry = new THREE.BufferGeometry().setFromPoints(outerSideLines);
+	var outerLine = new THREE.Line(lineGeometry, new THREE.LineDashedMaterial({
+		color:0x6C6C6C
+	}));
+	scene.add(innerLine, outerLine);*/
+	
+	/*let loader = new THREE.TextureLoader();    // load a resource
+		loader.load('https://i.imgur.com/mizmWO9.png',
+			function(texture) {
+				
+				var flameMesh = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshBasicMaterial({
+					map: texture,
+					alphaTest:0.5,
+					side: THREE.DoubleSide
+				}));
+				flameMesh.position.set(0.5, 0, 0);
+				flameMesh.rotation.x = Math.PI/2;
+				flameMesh.name = name;							
+				scene.add(flameMesh);
+			},
+			undefined,
+			function(xhr) {
+			  console.log('An error happened');
+			}
+		);*/	
+	
+	var innerSideShape = new THREE.Shape();
+	innerSideShape.moveTo(0, 0);
+	innerSideShape.absarc(0, 0, 5.8, Math.PI*0, Math.PI*2);	
+	
+	var innerSidePath = new THREE.Path();
+	innerSidePath.absarc(0, 0, 5.7, Math.PI*0, Math.PI*2);
+	innerSideShape.holes.push(innerSidePath);
+	
+	var innerSideShapeSettings = {
+		steps: 1,
+		depth: .1,
+		bevelEnabled: false,
+		curveSegments: 10
+	};
+	
+	var innerSide = new THREE.Mesh(new THREE.ExtrudeGeometry(innerSideShape, innerSideShapeSettings), new THREE.MeshPhongMaterial({
+		color: 0x3C3C3C,
+		shininess: 10,
+	}));
+	innerSide.rotation.x = -Math.PI / 2;
+	innerSide.position.set(0, 0, 0);
+	
+	var outerSideShape = new THREE.Shape();
+	outerSideShape.moveTo(0, 0);
+	outerSideShape.absarc(0, 0, 7.2, Math.PI*0, Math.PI*2);	
+	
+	var outerSidePath = new THREE.Path();
+	outerSidePath.absarc(0, 0, 7.1, Math.PI*0, Math.PI*2);
+	outerSideShape.holes.push(outerSidePath);
+	
+	var outerSideShapeSettings = {
+		steps: 1,
+		depth: .1,
+		bevelEnabled: false,
+		curveSegments: 10
+	};
+	
+	var outerSide = new THREE.Mesh(new THREE.ExtrudeGeometry(outerSideShape, outerSideShapeSettings), new THREE.MeshPhongMaterial({
+		color: 0x3C3C3C,
+		shininess: 10,
+	}));
+	outerSide.rotation.x = -Math.PI / 2;
+	outerSide.position.set(0, 0, 0);
+	
+	scene.add(innerSide, outerSide);
+	
+	const plane = new THREE.Mesh(new THREE.PlaneGeometry( 20, 20 ), new THREE.MeshBasicMaterial({
+		color: 0xBB5E00, 
+		side: THREE.DoubleSide
+	}));
+	plane.rotation.x = Math.PI/2;
+	scene.add( plane );
+	
+	clock = new THREE.Clock();
+	
+	readModel();
+}
+
+function onWindowResize() {
+  
+	var width = window.innerWidth;
+	var height = window.innerHeight;
+	camera.aspect = width / height;
+	camera.updateProjectionMatrix();
+	renderer.setSize(width, height);	
+}
+
+function animate() {
+	
+	dt = clock.getDelta();
+	if (turn) angle += Math.PI * dt / 15;
+	if(train != undefined) {
+		train.position.set(6.15*Math.cos(angle), 1.75, -6.15*Math.sin(angle));
+		train.rotation.y = angle-(3.1416/2);
+	}
+	
+	requestAnimationFrame(animate);
+	render();	
+}
+
+function render() {
+	
+	renderer.render(scene, camera);
+}
+
+</script>
+</body>
+
+</html>
