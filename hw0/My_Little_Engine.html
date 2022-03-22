@@ -14,13 +14,25 @@
 body {
 	overflow: hidden
 }
+
+.button {
+	background-color: #C4E1FF;
+	border-radius: 50%;
+	color: black; 
+	border: 2px solid #003D79;
+}
+
+.button:hover {
+	background-color: #003D79;
+	color: white;
+}
 </style>
 </head>
 
 <body>
 <div id='info'>
 	<h1>Homework 1 - My Little Engine</h1>
-<button id="toggle" style="width:50px">Start</button>
+<button id="toggle" class="button" style="width:100px;">Start</button>
 </div>
 <script src="https://threejs.org/build/three.min.js"></script>
 <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
@@ -125,44 +137,27 @@ function init () {
 	const light = new THREE.PointLight(0xffffff, 5, 100);
 	light.position.set(10, 10, 10);
 	scene.add( light );
+		
+	for (var i=0; i<16; i++) {
 	
-	/*let innerSideLines = [], outerSideLines = [];
-	for(var i=0; i<7; i=i+0.1) {
-		innerSideLines.push(new THREE.Vector3(7.8*Math.cos(i), 0, -7.8*Math.sin(i)));
-	}
-	var lineGeometry = new THREE.BufferGeometry().setFromPoints(innerSideLines);
-	var innerLine = new THREE.Line(lineGeometry, new THREE.LineDashedMaterial({
-		color:0x6C6C6C
-	}));
-	for(var i=0; i<7; i=i+0.1) {
-		outerSideLines.push(new THREE.Vector3(8.4*Math.cos(i), 0, -8.4*Math.sin(i)));
-	}
-	var lineGeometry = new THREE.BufferGeometry().setFromPoints(outerSideLines);
-	var outerLine = new THREE.Line(lineGeometry, new THREE.LineDashedMaterial({
-		color:0x6C6C6C
-	}));
-	scene.add(innerLine, outerLine);*/
-	
-	/*let loader = new THREE.TextureLoader();    // load a resource
-		loader.load('https://i.imgur.com/mizmWO9.png',
-			function(texture) {
-				
-				var flameMesh = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshBasicMaterial({
-					map: texture,
-					alphaTest:0.5,
-					side: THREE.DoubleSide
-				}));
-				flameMesh.position.set(0.5, 0, 0);
-				flameMesh.rotation.x = Math.PI/2;
-				flameMesh.name = name;							
-				scene.add(flameMesh);
-			},
-			undefined,
-			function(xhr) {
-			  console.log('An error happened');
-			}
-		);*/	
-	
+		let wood = new THREE.Mesh(new THREE.PlaneGeometry( 1, 2 ), new THREE.MeshBasicMaterial({
+			color: 0x842B00, 
+			side: THREE.DoubleSide
+		}));		
+		
+		var theta = Math.PI/8;
+		if (i == 0 || i == 8)
+			wood.setRotationFromEuler(new THREE.Euler(3.1416/2, 0, 3.1416/2, 'XYZ'));
+		else if (i > 8)
+			wood.setRotationFromEuler(new THREE.Euler(3.1416/2, 0, -Math.cos(i*theta), 'XYZ'));		
+		else
+			wood.setRotationFromEuler(new THREE.Euler(3.1416/2, 0, Math.cos(i*theta), 'XYZ'));
+		
+		wood.position.set(6.4*Math.cos(i*theta), .1, -6.4*Math.sin(i*theta));
+		
+		scene.add(wood);
+	}	
+		
 	var innerSideShape = new THREE.Shape();
 	innerSideShape.moveTo(0, 0);
 	innerSideShape.absarc(0, 0, 5.8, Math.PI*0, Math.PI*2);	
@@ -178,9 +173,8 @@ function init () {
 		curveSegments: 10
 	};
 	
-	var innerSide = new THREE.Mesh(new THREE.ExtrudeGeometry(innerSideShape, innerSideShapeSettings), new THREE.MeshPhongMaterial({
-		color: 0x3C3C3C,
-		shininess: 10,
+	var innerSide = new THREE.Mesh(new THREE.ExtrudeGeometry(innerSideShape, innerSideShapeSettings), new THREE.MeshBasicMaterial({
+		color: 0x3C3C3C
 	}));
 	innerSide.rotation.x = -Math.PI / 2;
 	innerSide.position.set(0, 0, 0);
@@ -200,9 +194,8 @@ function init () {
 		curveSegments: 10
 	};
 	
-	var outerSide = new THREE.Mesh(new THREE.ExtrudeGeometry(outerSideShape, outerSideShapeSettings), new THREE.MeshPhongMaterial({
-		color: 0x3C3C3C,
-		shininess: 10,
+	var outerSide = new THREE.Mesh(new THREE.ExtrudeGeometry(outerSideShape, outerSideShapeSettings), new THREE.MeshBasicMaterial({
+		color: 0x3C3C3C
 	}));
 	outerSide.rotation.x = -Math.PI / 2;
 	outerSide.position.set(0, 0, 0);
