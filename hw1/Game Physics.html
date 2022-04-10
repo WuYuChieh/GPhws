@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+    <title>Game Physics</title>
+	<link rel="icon" 
+		  href="https://png.pngtree.com/png-clipart/20190516/original/pngtree-volleyball-ball-cartoon-hand-painted-png-image_3843053.jpg" 
+		  type="image/x-icon"> 
+<style>
+#info {
+	position: absolute;
+	top: 0px;
+	width: 100%;
+	padding: 10px;
+	text-align: center;
+	color: #977C00
+} 
+
+body {
+	overflow: hidden
+}
+</style>
+</head>
+
+<body>
+<audio id=ring>
+  <source src="beep.mp3" type="audio/mpeg">
+</audio>
+<audio id=ring1>
+  <source src="beep.mp3" type="audio/mpeg">
+</audio>
+<audio id=ring2>
+  <source src="beep.mp3" type="audio/mpeg">
+</audio>
+<audio id=ring3>
+  <source src="beep.mp3" type="audio/mpeg">
+</audio>
+<audio id=ring4>
+  <source src="beep.mp3" type="audio/mpeg">
+</audio>
+<audio id=ring5>
+  <source src="beep.mp3" type="audio/mpeg">
+</audio>
+
+<div id='info'>
+	<h1>Homework 1 - Game Physics</h1>
+</div>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+<script>
+class Wall {
+	constructor(X = 0, Y = 0, Z = 0, position = new THREE.Vector3(0, 0, 0)) {
+		this.wall = new THREE.Mesh(new THREE.BoxGeometry(X, Y, Z), new THREE.MeshPhongMaterial({
+			color:0x888888, 
+			transparent: true,
+			opacity:0.4
+		}));
+		this.wall.position.set(position.x, position.y, position.z);	
+		
+		scene.add(this.wall);	
+	}
+}
+
+class Puck {
+	constructor(r = 0, H = 0, color = new THREE.Color(0xffffff), ring) {
+
+		this.body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, H, 25), new THREE.MeshPhongMaterial({color: color}));
+		this.body.position.set(Math.floor(Math.random()*15), 0.625, Math.floor(Math.random()*15));
+		this.light = new THREE.PointLight(color, 4, 2);
+		this.light.position.set(this.body.position.x, 0.75, this.body.position.z);
+		this.sound = ring;
+		this.pos = this.body.position;
+		this.vel = new THREE.Vector3(Math.floor(Math.random()*10), 0, Math.floor(Math.random()*-10));
+		
+		scene.add(this.body, this.light);
+	}
+	
+	update(dt) {
+		
+		this.pos.add(this.vel.clone().multiplyScalar (dt));
+
+		if (this.pos.z < -15+0.65) {
+		
+			this.sound.load();
+			this.vel.z = - this.vel.z;
+			this.pos.z = -15+0.65;
+			this.sound.play();
+		}
+		if (this.pos.z > 15-0.65) {
+		
+			this.sound.load();
+			this.vel.z = - this.vel.z;
+			this.pos.z = 15-0.65;
+			this.sound.play();
+		}
+		if (this.pos.x > 15-0.65) {
+		
+			this.sound.load();
+			this.vel.x = - this.vel.x;
+			this.pos.x = 15-0.65;
+			this.sound.play();	
+		}
+		if (this.pos.x < -15+0.65) {
+		
+			this.sound.load();
+			this.vel.x = - this.vel.x;
+			this.pos.x = -15+0.65;
+			this.sound.play();
+		}
+		
+		this.light.position.set(this.body.position.x, 0.8, this.body.position.z);
+	}
+	
+	collision(pucks) {
+	
+		for (var i = 0; i < pucks.length; i++) {
+		
+			if (this.body.position.distanceTo(pucks[i].body.position) == 0);
+			else if (this.body.position.distanceTo(pucks[i].body.position) <= 0.65 * 2) {
+
+				this.sound.load();
+				var t_vel = this.vel.clone();
+				var t = pucks[i].body.position.clone().sub(this.body.position).normalize();
+				var d = 0.65 * 2 - pucks[i].body.position.distanceTo(this.body.position);
+				
+				
+				//	position reset
+				this.body.position.sub(t.multiplyScalar(d/2));
+				pucks[i].body.position.add(t.multiplyScalar(d/2));
+				//	puck-puck collision
+				this.vel = t_vel.sub(this.body.position.clone().sub(pucks[i].body.position).multiplyScalar(t_vel.sub(pucks[i].vel).dot(this.body.position.clone().sub(pucks[i].body.position)) / this.body.position.clone().distanceToSquared(pucks[i].body.position)));
+				pucks[i].vel = pucks[i].vel.clone().sub(pucks[i].body.position.clone().sub(this.body.position).multiplyScalar(pucks[i].vel.clone().sub(t_vel).dot(pucks[i].body.position.clone().sub(this.body.position)) / pucks[i].body.position.clone().distanceToSquared(this.body.position)));
+				this.sound.play();
+			} else {
+			
+				this.body.position.copy (this.body.position);
+				pucks[i].body.position.copy (pucks[i].body.position);
+			}
+		}
+	}
+}
+
+var renderer, scene, camera;
+var angle = 0;
+var pucks = [];
+
+init();
+animate();
+
+function init () {
+	
+	renderer = new THREE.WebGLRenderer();
+	document.body.appendChild (renderer.domElement);
+	var width = window.innerWidth;
+	var height = window.innerHeight;
+	renderer.setSize (width, height);
+	
+	renderer.setClearColor (0xFFF0AC);
+	
+	scene = new THREE.Scene();
+	var grid = new THREE.GridHelper(20,20, 0xaaaa00, 0x333333);
+	//scene.add (grid);
+	var axes = new THREE.AxesHelper (5);
+	//scene.add (axes);
+	
+	camera = new THREE.PerspectiveCamera (35, width/height, 1, 100);
+	camera.position.set(0, 40, 60);
+	camera.lookAt (new THREE.Vector3(0,0,0));
+	
+	let controls = new THREE.OrbitControls(camera, renderer.domElement);
+	
+	window.addEventListener('resize', onWindowResize, false);
+	///////////////////////////////////////////////////////////////	
+	const floor = new THREE.Mesh(new THREE.BoxGeometry(30, 0.5, 30), new THREE.MeshPhongMaterial({
+		color:"gray"
+	}));
+	floor.position.set(0, 0.25, 0);
+	scene.add(floor);
+	
+	const light = new THREE.PointLight(0xffffff, 0.5);
+	light.position.set(0, 50, 0);
+	scene.add(light);
+	
+	const lightAm = new THREE.AmbientLight(0x111111);
+	lightAm.position.set(0, 50, 0);
+	scene.add(lightAm);
+
+	var wall = new Wall(1, 3, 31, new THREE.Vector3(15.5, 1.5, 0.5));
+	var wall1 = new Wall(1, 3, 31, new THREE.Vector3(-15.5, 1.5, -0.5));
+	var wall2 = new Wall(31, 3, 1, new THREE.Vector3(0.5, 1.5, -15.5));
+	var wall3 = new Wall(31, 3, 1, new THREE.Vector3(-0.5, 1.5, 15.5));
+	
+	puck = new Puck(0.65, 0.25, new THREE.Color(0xFFD2D2), ring);
+	puck1 = new Puck(0.65, 0.25, new THREE.Color(0xFFEEDD), ring1);
+	puck2 = new Puck(0.65, 0.25, new THREE.Color(0xFFFFDF), ring2);
+	puck3 = new Puck(0.65, 0.25, new THREE.Color(0xE8FFF5), ring3);
+	puck4 = new Puck(0.65, 0.25, new THREE.Color(0xD2E9FF), ring4);
+	puck5 = new Puck(0.65, 0.25, new THREE.Color(0xF1E1FF), ring5);
+	pucks.push(puck, puck1, puck2, puck3, puck4, puck5);
+}
+
+function onWindowResize() {
+  
+	var width = window.innerWidth;
+	var height = window.innerHeight;
+	camera.aspect = width / height;
+	camera.updateProjectionMatrix();
+	renderer.setSize(width, height);	
+}
+
+function animate() {
+	
+	var dt = 0.01;
+	pucks.forEach(function(p){
+		p.update(dt);
+		p.collision(pucks);
+	})
+	
+	requestAnimationFrame(animate);
+	render();	
+}
+
+function render() {
+	
+	renderer.render(scene, camera);
+}
+
+</script>
+</body>
+
+</html>
