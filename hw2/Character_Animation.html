@@ -213,6 +213,7 @@ function buildBody(WW ,HH, DD) {
 }
 function buildArm(WW ,HH, DD) {
 
+	let Arm = new THREE.Group();
 	var geometry = new THREE.BufferGeometry();	
 	var vertices = [];
 	var indices = [];
@@ -270,10 +271,13 @@ function buildArm(WW ,HH, DD) {
 	geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));	
 
 	let arm = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: texture, side:THREE.DoubleSide}));
-	return arm;
+	Arm.add (arm);
+	arm.position.y = -HH/2;
+	return Arm;
 }
 function buildLeg(WW ,HH, DD) {
 
+	let Leg = new THREE.Group();
 	var geometry = new THREE.BufferGeometry();	
 	var vertices = [];
 	var indices = [];
@@ -331,7 +335,9 @@ function buildLeg(WW ,HH, DD) {
 	geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));	
 
 	let leg = new THREE.Mesh (geometry, new THREE.MeshBasicMaterial({map: texture, side:THREE.DoubleSide}));
-	return leg;
+	Leg.add (leg);
+	leg.position.y = -HH/2;
+	return Leg;
 }
 
 function init () {
@@ -347,14 +353,13 @@ function init () {
 	scene = new THREE.Scene();
 	var grid = new THREE.GridHelper(20,20, 0xaaaa00, 0x333333);
 	scene.add (grid);
-	var axes = new THREE.AxesHelper (5);
-	//scene.add (axes);
+	var axes = new THREE.AxesHelper (3);
 	
 	camera = new THREE.PerspectiveCamera (35, width/height, 1, 10000);
 	camera.position.set(0, 20, 60);
 	camera.lookAt (new THREE.Vector3(0,0,0));
 	
-	camera3rd = new THREE.PerspectiveCamera(60, width / height, 1, 10000);	
+	camera3rd = new THREE.PerspectiveCamera(35, width / height, 1, 10000);	
 	
 	let controls = new THREE.OrbitControls(camera, renderer.domElement);
 	
@@ -369,16 +374,16 @@ function init () {
 	head.position.set(0, 1.575, 0);
 	body.add(head);
 	var leftLeg = buildLeg(0.62, 1.91, 0.62);
-	leftLeg.position.set(0.31, -1.91, 0);
+	leftLeg.position.set(0.31, -0.955, 0);
 	body.add(leftLeg);
 	var rightLeg = buildLeg(0.62, 1.91, 0.62);
-	rightLeg.position.set(-0.31, -1.91, 0);
+	rightLeg.position.set(-0.31, -0.955, 0);
 	body.add(rightLeg);
 	var leftHand = buildArm(0.62, 1.91, 0.62);
-	leftHand.position.set(0.93, 0, 0);
+	leftHand.position.set(0.93, 0.955, 0);
 	body.add(leftHand);
 	var rightHand = buildArm(0.62, 1.91, 0.62);
-	rightHand.position.set(-0.93, 0, 0);
+	rightHand.position.set(-0.93, 0.955, 0);
 	body.add(rightHand);
 	Steve.add(body);
 	
@@ -396,16 +401,14 @@ function onWindowResize() {
 
 function animate() {
 	
-	camera3rd.position.copy(Steve.children[0].children[0].localToWorld(new THREE.Vector3(0, 0.5, 0.63)));
-	camera3rd.lookAt(Steve.children[0].children[0].localToWorld(new THREE.Vector3(0, 0, 2)));
+	camera3rd.position.copy(Steve.children[0].children[0].localToWorld(new THREE.Vector3(0, 5, -15)));
+	camera3rd.lookAt(Steve.children[0].children[0].localToWorld(new THREE.Vector3(0, 0, 0)));
 
 	let dt = clock.getDelta();
 	let R = 3;
 	let omega = 12/R/T;  
 	theta += omega*dt/5;
-	
-	console.log(theta);
-	
+		
 	if (theta>2*Math.PI && t==0) {
 		theta = 0;
 		t=1;
