@@ -125,18 +125,24 @@ class Puck {
 				var t = pucks[i].body.position.clone().sub(this.body.position).normalize();
 				var d = 0.65 * 2 - pucks[i].body.position.distanceTo(this.body.position);
 				
-				
 				//	position reset
 				this.body.position.sub(t.multiplyScalar(d/2));
 				pucks[i].body.position.add(t.multiplyScalar(d/2));
 				//	puck-puck collision
-				this.vel = t_vel.sub(this.body.position.clone().sub(pucks[i].body.position).multiplyScalar(t_vel.sub(pucks[i].vel).dot(this.body.position.clone().sub(pucks[i].body.position)) / this.body.position.clone().distanceToSquared(pucks[i].body.position)));
-				pucks[i].vel = pucks[i].vel.clone().sub(pucks[i].body.position.clone().sub(this.body.position).multiplyScalar(pucks[i].vel.clone().sub(t_vel).dot(pucks[i].body.position.clone().sub(this.body.position)) / pucks[i].body.position.clone().distanceToSquared(this.body.position)));
+				this.vel = t_vel.sub(
+					this.body.position.clone()
+						.sub(pucks[i].body.position)
+						.multiplyScalar(t_vel.sub(pucks[i].vel)
+							.dot(this.body.position.clone().sub(pucks[i].body.position)) / 
+							this.body.position.clone().distanceToSquared(pucks[i].body.position)));
+						
+				pucks[i].vel = pucks[i].vel.clone().sub(
+					pucks[i].body.position.clone()
+						.sub(this.body.position)
+						.multiplyScalar(pucks[i].vel.clone().sub(t_vel)
+							.dot(pucks[i].body.position.clone().sub(this.body.position)) / 
+							pucks[i].body.position.clone().distanceToSquared(this.body.position)));
 				this.sound.play();
-			} else {
-			
-				this.body.position.copy (this.body.position);
-				pucks[i].body.position.copy (pucks[i].body.position);
 			}
 		}
 	}
