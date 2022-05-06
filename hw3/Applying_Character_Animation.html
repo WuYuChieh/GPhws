@@ -25,6 +25,7 @@ body {
 <body>
 <div id='info'>
 	<h1>Homework 3 - Applying Character Animation</h1>
+	<h3>"space" - stand to walk &nbsp&nbsp&nbsp&nbsp "shift" - walk to stand &nbsp&nbsp&nbsp&nbsp "up/down" - control speed</h3>
 </div>
 <script src="https://threejs.org/build/three.min.js"></script>
 <script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
@@ -34,10 +35,9 @@ body {
 
 <script>
 var renderer, scene, camera, gyro;
-var turn, texture;
+var texture, T = 1, t = 0;
 var keyboard = new KeyboardState();
 var Steve = new THREE.Group();
-var theta = 0, T = 1, t = 0;
 var clock = new THREE.Clock();
 var ts = clock.getElapsedTime();
 var pos = new THREE.Vector3(),
@@ -47,17 +47,17 @@ var pos = new THREE.Vector3(),
 var power = 0.00, angle = 0.0;
 
 var pose1 = {
-	lThigh: Math.PI/6,
-	rThigh: -Math.PI/6
+	lThigh: Math.PI/18,
+	rThigh: -Math.PI/18
 }
 var pose2 = {
-	lThigh: -Math.PI/6,
-	rThigh: +Math.PI/6
+	lThigh: -Math.PI/18,
+	rThigh: +Math.PI/18
 }
 var keys = [
 	[0, pose1],
 	[0.5, pose2],
-	[1, pose1]
+	[1, pose1],
 ];
 
 init();
@@ -215,15 +215,15 @@ function buildArm(WW ,HH, DD) {
 	const UU = 14*ww;
 	const VV = hh + 5*ww;
 
-	var a = {u: 11*ww, v: hh+ww};
-	var b = {u: 12*ww, v: hh+ww};
+	var a = {u: 11*ww+1, v: hh+ww};
+	var b = {u: 12*ww+1, v: hh+ww};
 	var c = {u: 13*ww, v: hh+ww};
-	var d = {u: 10*ww, v: hh};
-	var e = {u: 11*ww, v: hh};
-	var f = {u: 12*ww, v: hh};
+	var d = {u: 10*ww+1, v: hh};
+	var e = {u: 11*ww+1, v: hh};
+	var f = {u: 12*ww+1, v: hh};
 	var g = {u: 13*ww, v: hh};
 	var h = {u: 14*ww, v: hh};
-	var i = {u: 10*ww, v: 0};
+	var i = {u: 10*ww+1, v: 0};
 	var j = {u: 11*ww, v: 0};
 	var k = {u: 12*ww, v: 0};
 	var l = {u: 13*ww, v: 0};
@@ -251,7 +251,7 @@ function buildArm(WW ,HH, DD) {
 
 	vertices.push(-WW/2,HH/2,DD/2, WW/2,HH/2,DD/2, WW/2,HH/2,-DD/2, -WW/2,HH/2,-DD/2 ); // 0,1,5,4
 	indices.push (16,17,18, 16,18,19); // [0,1,2, 0,2,3] + 16
-	uvs.push (a.u/UU,a.v/VV, e.u/UU,e.v/VV, f.u/UU,f.v/VV, b.u/UU,b.v/VV); // a,e,f,b
+	uvs.push (e.u/UU,e.v/VV, f.u/UU,f.v/VV, b.u/UU,b.v/VV, a.u/UU,a.v/VV); // e,f,b,a
 
 	vertices.push(-WW/2,-HH/2,DD/2, WW/2,-HH/2,DD/2, WW/2,-HH/2,-DD/2, -WW/2,-HH/2,-DD/2, ); // 3,2,6,7
 	indices.push (20,21,22, 20,22,23); // [0,1,2, 0,2,3] + 20
@@ -343,19 +343,16 @@ function init () {
 	renderer.setClearColor (0xEBD6D6);
 	
 	scene = new THREE.Scene();
-	var grid = new THREE.GridHelper(20,20, 0xaaaa00, 0x333333);
+	var grid = new THREE.GridHelper(50,50, 0xaaaa00, 0x333333);
 	scene.add (grid);
 	var axes = new THREE.AxesHelper (3);
 	
-	camera = new THREE.PerspectiveCamera (35, width/height, 1, 10000);
-	//camera.position.set(0, 50, 60);
-	//camera.lookAt (new THREE.Vector3(0,0,0));
-	
+	camera = new THREE.PerspectiveCamera (60, width/height, 1, 10000);
 	gyro = new THREE.Gyroscope();
 	Steve.add (gyro);
 	gyro.add (camera);
 	
-	camera.position.set (20,60,50); // in gyro frame
+	camera.position.set (20,30,50); // in gyro frame
 		
 	let controls = new THREE.OrbitControls(camera, renderer.domElement);
 	
@@ -383,7 +380,7 @@ function init () {
 	body.add(rightHand);
 	body.rotation.y = Math.PI /2;
 	Steve.add(body);
-	
+
 	scene.add(Steve);
 }
 
@@ -404,26 +401,37 @@ function update(dt) {
 		angle = 1.5*Math.PI + Math.atan2(vel.x, vel.z);
 	}
 
-	if (keyboard.pressed("space"))  
-		power = 0.00;               
+	if (keyboard.pressed("shift"))  //	walk to stand
+		power = 0.00;
+	if (keyboard.pressed("space"))  //	stand to walk
+		power = 5.00;
+	
 	if (keyboard.pressed("up"))  
-		power += 1.0;        
+		power += 1.5;
 	if (keyboard.pressed("down"))  
-		power -= 1.0;   
-	  
+		power -= 1.5;	
+	
+	pose1.lThigh = Math.PI/(20-power/4);
+	pose1.rThigh = -Math.PI/(20-power/4);
+	pose2.lThigh = -Math.PI/(20-power/4);
+	pose2.rThigh = Math.PI/(20-power/4);
+	
 	var angle_thrust = angle;
 	if (keyboard.pressed("left"))
 		angle_thrust += 0.5;
 	if (keyboard.pressed("right"))
 		angle_thrust -= 0.5;
 	
-	if (power <= -0.0)
+	//math.clamp
+	if (power <= -0.0) {
 		power = 0.0;
-	if (power >= 60.0)	
+	}	
+	if (power >= 60.0)	{
 		power = 60.0;
-
+	}
+	
 	// compute force
-	if (power >= 0.00) {
+	if (power > 0.00) {
 		var thrust = new THREE.Vector3(1,0,0).multiplyScalar(power).applyAxisAngle(new THREE.Vector3(0,1,0), angle_thrust);
 		force.copy(thrust);
 		force.add(vel.clone().multiplyScalar(-2));
@@ -438,25 +446,22 @@ function animate() {
 	
 	var dt = clock.getDelta();
 	update(dt);
-	/*let R = 3;
-	let omega = 12/R/T;  
-	theta += omega*dt/5;	*/
+	let intKey = keyframe(clock.getElapsedTime());
 	
 	if (power != 0) {
 		
-		let intKey = keyframe(clock.getElapsedTime());
-		Steve.children[1].children[1].rotation.x = intKey[0];
+		Steve.children[1].children[1].rotation.x = intKey[0];	//legs
 		Steve.children[1].children[2].rotation.x = intKey[1];  
 		
-		Steve.children[1].children[3].rotation.x = intKey[1];
+		Steve.children[1].children[3].rotation.x = intKey[1];	//arms
 		Steve.children[1].children[4].rotation.x = intKey[0];  
 	}
 	else {
 	
-		Steve.children[1].children[1].rotation.x = 0;
+		Steve.children[1].children[1].rotation.x = 0;	//legs
 		Steve.children[1].children[2].rotation.x = 0;  
 
-		Steve.children[1].children[3].rotation.x = 0;
+		Steve.children[1].children[3].rotation.x = 0;	//arms
 		Steve.children[1].children[4].rotation.x = 0;  
 	}
 	

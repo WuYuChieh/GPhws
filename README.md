@@ -4,4 +4,5 @@
 - [hw1](https://github.com/WuYuChieh/GPhws/tree/master/hw1) - Game Physics
 - [hw2](https://github.com/WuYuChieh/GPhws/tree/master/hw2) - Character Animation
 - [hw3](https://github.com/WuYuChieh/GPhws/tree/master/hw3) - Applying Character Animation
+- hw4 - Steer & Group Steer
 ###### Computer Graphics 2021 [清單](https://github.com/WuYuChieh/CGhws)
