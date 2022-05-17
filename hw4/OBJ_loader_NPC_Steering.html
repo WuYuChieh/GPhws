@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+    <title>OBJ loader, NPC Steering</title>
+	<link rel="icon" 
+		  href="https://png.pngtree.com/png-clipart/20190516/original/pngtree-volleyball-ball-cartoon-hand-painted-png-image_3843053.jpg" 
+		  type="image/x-icon"> 
+<style>
+#info {
+	position: absolute;
+	top: 0px;
+	width: 100%;
+	padding: 10px;
+	text-align: center;
+	color: #5A5AAD
+} 
+
+body {
+	overflow: hidden
+}
+</style>
+</head>
+
+<body>
+<div id='info'>
+	<h1>Homework 4 - OBJ loader, NPC Steering</h1>	
+	<h3>"space" -  stop the bus &nbsp&nbsp&nbsp&nbsp "up/down" - control speed of bus</h3>
+</div>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://raw.githack.com/jyunming-chen/tutsplus/master/js/KeyboardState.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="https://raw.githack.com/mrdoob/three.js/dev/examples/js/loaders/MTLLoader.js"></script>
+<script src="https://raw.githack.com/mrdoob/three.js/dev/examples/js/loaders/OBJLoader.js"></script>
+<script src="./bulid_Steve.js"></script>
+<script src="./agent_Class.js"></script>
+
+<script>
+var renderer, scene, camera, gyro;
+var texture, T = 1, t = 0;
+var keyboard = new KeyboardState();
+var Steve = new THREE.Group();
+var clock = new THREE.Clock();
+var ts = clock.getElapsedTime();
+var pos = new THREE.Vector3(),
+	vel = new THREE.Vector3(),
+	force = new THREE.Vector3();
+var power = 0.00, angle = 0.0;
+var body;
+
+var bus = new THREE.Group();
+var raycaster;
+var mouse = new THREE.Vector2();
+var pickables = [];
+var agent;
+	
+
+var pose1 = {
+	lThigh: Math.PI/15,
+	rThigh: -Math.PI/15
+}
+var pose2 = {
+	lThigh: -Math.PI/15,
+	rThigh: +Math.PI/15
+}
+var keys = [
+	[0, pose1],
+	[0.5, pose2],
+	[1, pose1],
+];
+
+init();
+animate();
+
+function unitize (object, targetSize) {
+	var box3 = new THREE.Box3();
+	box3.setFromObject(object);
+	var size = new THREE.Vector3();
+	size.subVectors(box3.max, box3.min);
+	var center = new THREE.Vector3();
+	center.addVectors(box3.max, box3.min).multiplyScalar(0.5);
+	
+	var objSize = Math.max(size.x, size.y, size.z);
+	var scaleSet = targetSize / objSize;
+
+	var theObject = new THREE.Object3D();
+	theObject.add(object);
+	object.scale.set(scaleSet, scaleSet, scaleSet);
+	object.position.set(-center.x * scaleSet, -center.y * scaleSet, -center.z * scaleSet);
+	
+	return theObject;
+}
+
+function readModel (targetSize = 30) {
+	var onProgress = function (xhr) {
+		if (xhr.lengthComputable) {
+			var percentComplete = xhr.loaded / xhr.total * 100;
+			console.log(Math.round(percentComplete, 2) + '% download');
+		}
+	};
+	
+	var onError = function (xhr) {};
+	var mtlLoader = new THREE.MTLLoader();
+	mtlLoader.setPath('Bus/');
+	mtlLoader.load('bus.mtl', function(materials) {
+		materials.preload();
+		var objLoader = new THREE.OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.setPath('Bus/');
+		objLoader.load('bus.obj', function(object) {
+			let theObject = unitize(object, targetSize);
+			theObject.name = 'OBJ';			
+			theObject.setRotationFromEuler(new THREE.Euler(0, -3.1416, 0, 'XYZ'));
+			bus.add(theObject);
+			bus.position.set(0, 4, 0);
+			scene.add(bus);
+		}, onProgress, onError);
+	});	
+}
+
+function onDocumentMouseDown(event) {
+
+	event.preventDefault();
+	mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+	mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+	// find intersections
+	raycaster.setFromCamera(mouse, camera);
+	var intersects = raycaster.intersectObjects(pickables);
+	if (intersects.length > 0) {
+		bus.position.copy(intersects[0].point);
+		bus.position.y = 4;
+		agent.setTarget (intersects[0].point.x + 15, intersects[0].point.y + 3, intersects[0].point.z + 15);
+	}
+}
+
+function init () {
+	
+	renderer = new THREE.WebGLRenderer();
+	document.body.appendChild (renderer.domElement);
+	var width = window.innerWidth;
+	var height = window.innerHeight;
+	renderer.setSize (width, height);
+	
+	renderer.setClearColor (0xE6E6F2);
+	
+	scene = new THREE.Scene();
+	var grid = new THREE.GridHelper(200,40, 0xaaaa00, 0x333333);
+	scene.add (grid);
+	var axes = new THREE.AxesHelper (5);
+	bus.add (axes);
+	
+	camera = new THREE.PerspectiveCamera (30, width/height, 1, 10000);
+	camera.position.set (180, 120, 180);
+	camera.lookAt (new THREE.Vector3(0,0,0));
+	
+	let controls = new THREE.OrbitControls(camera, renderer.domElement);
+	
+	window.addEventListener('resize', onWindowResize, false);
+
+	raycaster = new THREE.Raycaster();
+	document.addEventListener('pointerdown', onDocumentMouseDown, false);
+	
+	///////////////////////////////////////////////////////////////	
+	
+	const pointLight = new THREE.PointLight( 0xffffff, 3, 300 );
+	pointLight.position.set( 50, 50, 50 );
+
+	const sphereSize = 1;
+	const pointLightHelper = new THREE.PointLightHelper( pointLight, sphereSize );
+	
+	let plane = new THREE.Mesh(new THREE.PlaneGeometry(190, 190), new THREE.MeshBasicMaterial({
+		color: 0x2e8b57,
+		transparent: true,
+		opacity: 0.4
+	}));
+	plane.rotation.x = -Math.PI / 2;
+	plane.position.y = -0.1;
+	pickables = [plane];
+
+	let loader = new THREE.TextureLoader();
+	texture = loader.load('https://i.imgur.com/BHEbTLX.png');
+
+	body = buildBody(1.24, 1.91, 0.62);
+	body.position.set(0, 2.865, 0);
+	var head = buildHead(1.24, 1.24, 1.24);
+	head.position.set(0, 1.575, 0);
+	body.add(head);
+	var leftLeg = buildLeg(0.62, 1.91, 0.62);
+	leftLeg.position.set(0.31, -0.955, 0);
+	body.add(leftLeg);
+	var rightLeg = buildLeg(0.62, 1.91, 0.62);
+	rightLeg.position.set(-0.31, -0.955, 0);
+	body.add(rightLeg);
+	var leftHand = buildArm(0.62, 1.91, 0.62);
+	leftHand.position.set(0.93, 0.955, 0);
+	body.add(leftHand);
+	var rightHand = buildArm(0.62, 1.91, 0.62);
+	rightHand.position.set(-0.93, 0.955, 0);
+	body.add(rightHand);
+	body.rotation.y = Math.PI/2;
+	Steve.add(body);
+	
+	agent = new Agent(new THREE.Vector3(-100 + 200 * Math.random(), 3, -100 + 200 * Math.random()), body);
+	
+	readModel();
+	console.log("bus");
+	console.log(bus);
+	console.log("Steve");
+	console.log(Steve);
+	console.log("body");
+	console.log(body);
+	console.log("agent");
+	console.log(agent);
+	
+	scene.add(pointLight, plane, Steve);
+}
+
+function onWindowResize() {
+  
+	var width = window.innerWidth;
+	var height = window.innerHeight;
+	camera.aspect = width / height;
+	camera.updateProjectionMatrix();
+	renderer.setSize(width, height);	
+}
+
+function busUpdate(dt) {
+
+	keyboard.update();
+	
+	if (vel.length() > 0) {
+		angle = 1.5*Math.PI + Math.atan2(vel.x, vel.z);
+	}
+	
+	if (keyboard.pressed("space")) 
+		power = 0.00;
+	
+	if (keyboard.pressed("up"))  
+		power += 1.5;
+	if (keyboard.pressed("down"))  
+		power -= 1.5;	
+		
+	var angle_thrust = angle;
+	if (keyboard.pressed("left"))
+		angle_thrust += 0.3;
+	if (keyboard.pressed("right"))
+		angle_thrust -= 0.3;
+	
+	//math.clamp
+	if (power <= -0.0) {
+		power = 0.0;
+	}	
+	if (power >= 60.0)	{
+		power = 60.0;
+	}
+	
+	// compute force
+	if (power > 0.00) {
+		var thrust = new THREE.Vector3(1,0,0).multiplyScalar(power).applyAxisAngle(new THREE.Vector3(0,1,0), angle_thrust);
+		force.copy(thrust);
+		force.add(vel.clone().multiplyScalar(-2));
+
+	// eulers
+		vel.add(force.clone().multiplyScalar(dt));
+		bus.position.add(vel.clone().multiplyScalar(dt));
+	}
+		//console.log(bus.localToWorld(new THREE.Vector3(10, 0, 0)).x);
+	agent.setTarget(bus.localToWorld(new THREE.Vector3(10, 0, 0)).x + 5,
+					bus.localToWorld(new THREE.Vector3(10, 0, 0)).y,
+					bus.localToWorld(new THREE.Vector3(10, 0, 0)).z + 12)
+}
+
+function animate() {
+	
+	var dt = clock.getDelta();
+	busUpdate(dt);
+	agent.update(dt);
+	agent.keyframeAnimation(dt);
+	
+	bus.rotation.y = angle;
+	
+	requestAnimationFrame(animate);
+	render();	
+}
+
+function render() {
+	
+	renderer.render(scene, camera);
+}
+
+</script>
+</body>
+
+</html>
